@@ -3,175 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App Chấm Điểm Phát Âm Tiếng Trung Chuẩn Xác</title>
+    <title>Hệ Thống Luyện Phát Âm Tiếng Trung HSK 1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pinyin-pro/3.13.0/index.js"></script>
     <style>
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --text: #1e293b;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            color: #1a1a1a;
-            max-width: 650px;
-            margin: 30px auto;
-            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0; padding: 20px;
         }
-        .container {
+        .app-container {
+            max-width: 1000px;
+            margin: 0 auto;
             background: #fff;
-            padding: 30px;
+            padding: 25px;
             border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
-        h1 { text-align: center; color: #1e3a8a; margin-bottom: 5px; }
-        .desc { text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 25px; }
+        h1 { text-align: center; color: #0f172a; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 15px; }
         
-        .box-target {
-            text-align: center;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
+        /* Layout chia hai cột: Danh mục bài tập & Khu vực luyện tập */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
         }
-        .target-hz { font-size: 48px; font-weight: bold; color: #0f172a; letter-spacing: 2px; }
-        .target-py { font-size: 18px; color: #2563eb; font-weight: 500; margin-top: 5px; }
-        
-        .input-group { margin-bottom: 20px; }
-        label { font-weight: 600; font-size: 14px; color: #374151; display: block; margin-bottom: 5px; }
-        input[type="text"] {
-            width: 100%; padding: 12px; border: 1px solid #cbd5e1;
-            border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        @media (max-width: 768px) {
+            .main-layout { grid-template-columns: 1fr; }
         }
 
-        .btn-speak {
-            width: 100%; padding: 15px; background: #2563eb; color: #fff;
-            border: none; border-radius: 10px; font-size: 16px; font-weight: bold;
-            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        /* Cột bên trái: Danh sách bài tập chia theo chủ đề */
+        .sidebar {
+            border-right: 1px solid #e2e8f0;
+            padding-right: 15px;
         }
-        .btn-speak:hover { background: #1d4ed8; }
-        .btn-speak:disabled { background: #94a3b8; cursor: not-allowed; }
+        .category-select {
+            width: 100%; padding: 10px; border-radius: 8px;
+            border: 1px solid #cbd5e1; font-size: 15px; font-weight: 600;
+            margin-bottom: 15px; background: #fff; color: var(--primary);
+        }
+        .exercise-list {
+            max-height: 450px; overflow-y: auto;
+        }
+        .exercise-item {
+            padding: 12px; margin-bottom: 8px; border-radius: 8px;
+            background: #f1f5f9; border: 1px solid transparent; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .exercise-item:hover { background: #e2e8f0; }
+        .exercise-item.active {
+            background: #eff6ff; border-color: var(--primary); color: var(--primary);
+            font-weight: bold;
+        }
+        .exercise-item .py-sub { font-size: 12px; color: #64748b; font-weight: normal; margin-top: 3px; }
+
+        /* Cột bên phải: Khu vực hiển thị từ và bấm nói */
+        .practice-area {
+            display: flex; flex-direction: column; justify-content: flex-start;
+        }
+        .display-card {
+            text-align: center; padding: 35px 20px; background: #f8fafc;
+            border: 2px dashed #cbd5e1; border-radius: 12px; margin-bottom: 20px;
+        }
+        .hz-main { font-size: 56px; font-weight: bold; color: #0f172a; letter-spacing: 3px; }
+        .py-main { font-size: 22px; color: var(--primary); font-weight: 500; margin: 10px 0; }
+        .meaning-main { font-size: 18px; color: #64748b; }
+
+        .btn-mic {
+            width: 100%; padding: 16px; background-color: var(--primary); color: white;
+            border: none; border-radius: 12px; font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: background 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-mic:hover { background-color: #1d4ed8; }
+        .btn-mic:disabled { background-color: #94a3b8; cursor: not-allowed; }
         
-        #status { text-align: center; margin: 15px 0; font-weight: 500; color: #64748b; }
+        #status { text-align: center; font-weight: bold; margin: 15px 0; color: #64748b; min-height: 24px; }
         
+        /* Thẻ kết quả phân tích */
         .result-card {
-            border-radius: 12px; padding: 20px; margin-top: 25px;
-            display: none; animation: fadeIn 0.3s ease;
+            background-color: #f8fafc; border-left: 5px solid var(--primary);
+            border-radius: 12px; padding: 20px; display: none; margin-top: 10px;
         }
-        .result-header { display: flex; justify-content: space-between; align-items: center; }
-        .score-circle {
-            width: 80px; height: 80px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; font-weight: bold; color: white;
-        }
-        .details p { margin: 6px 0; font-size: 15px; }
-        .details span { font-weight: bold; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-flex { display: flex; justify-content: space-between; align-items: center; }
+        .score-box { text-align: center; }
+        .score-num { font-size: 46px; font-weight: bold; color: var(--success); }
+        .analysis p { margin: 6px 0; font-size: 15px; }
+        .analysis span { font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🇨🇳 Kiểm Tra Phát Âm Tiếng Trung</h1>
-    <div class="desc">Ứng dụng nhận diện giọng nói và chấm điểm dựa trên độ chuẩn xác của Phiên âm (Pinyin)</div>
+<div class="app-container">
+    <h1>🇨🇳 Hệ Thống Luyện Phát Âm Tiếng Trung</h1>
+    <div class="subtitle">Kho bài tập tích hợp sẵn 5 chủ đề giao tiếp cơ bản HSK 1</div>
 
-    <div class="input-group">
-        <label for="inputTarget">Nhập từ hoặc câu tiếng Trung muốn luyện tập:</label>
-        <input type="text" id="inputTarget" value="很高兴认识你" placeholder="Ví dụ: 你好, 谢谢, 苹果...">
-    </div>
+    <div class="main-layout">
+        <div class="sidebar">
+            <label for="categoryMenu" style="font-weight: bold; display:block; margin-bottom:5px;">Chọn chủ đề:</label>
+            <select id="categoryMenu" class="category-select">
+                <option value="chao_hoi">1. Chào hỏi & Khách sáo</option>
+                <option value="gioi_thieu">2. Giới thiệu bản thân</option>
+                <option value="so_thoi_gian">3. Con số & Thời gian</option>
+                <option value="mua_sam_an_uong">4. Mua sắm & Ăn uống</option>
+                <option value="giao_tiep_hang_ngay">5. Câu hỏi thông dụng</option>
+            </select>
+            
+            <div class="exercise-list" id="exerciseList">
+                </div>
+        </div>
 
-    <div class="box-target">
-        <div class="target-hz" id="displayHz">很高兴认识你</div>
-        <div class="target-py" id="displayPy">hěn gāo xìng rèn shi nǐ</div>
-    </div>
-
-    <button class="btn-speak" id="btnSpeak">🎤 Bấm vào đây & Đọc to câu trên</button>
-    <div id="status">Sẵn sàng nhận diện.</div>
-
-    <div class="result-card" id="resultCard">
-        <div class="result-header">
-            <div class="details">
-                <h3 style="margin-0 0 10px 0;">Kết quả phân tích:</h3>
-                <p>• Máy nghe được: <span id="resHeard" style="color: #0f172a;">-</span></p>
-                <p>• Pinyin bạn đọc: <span id="resHeardPy" style="color: #2563eb;">-</span></p>
-                <p>• Đánh giá: <span id="resFeedback">-</span></p>
+        <div class="practice-area">
+            <div class="display-card">
+                <div class="hz-main" id="displayHz">-</div>
+                <div class="py-main" id="displayPy">-</div>
+                <div class="meaning-main" id="displayMeaning">-</div>
             </div>
-            <div class="score-circle" id="scoreCircle">0%</div>
+
+            <button id="btnMic" class="btn-mic">🎤 Nhấn & Đọc To Câu Trên</button>
+            <div id="status">Sẵn sàng. Chọn bài tập bên trái để bắt đầu.</div>
+
+            <div class="result-card" id="resultCard">
+                <div class="result-flex">
+                    <div class="analysis">
+                        <h4 style="margin: 0 0 10px 0; color:#0f172a;">Phân tích phát âm:</h4>
+                        <p>• Máy nghe được: <span id="resHeard" style="color: #0f172a;">-</span></p>
+                        <p>• Phiên âm thực tế: <span id="resHeardPy" style="color: var(--primary)">-</span></p>
+                        <p>• Nhận xét: <span id="resFeedback">-</span></p>
+                    </div>
+                    <div class="score-box">
+                        <div style="font-size: 13px; font-weight: 600; color: #64748b;">ĐỘ CHUẨN</div>
+                        <div class="score-num" id="resScore">0%</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Tự động cập nhật Pinyin khi người dùng thay đổi câu mẫu
-    const inputTarget = document.getElementById('inputTarget');
+    // NGÂN HÀNG DỮ LIỆU BÀI TẬP CÓ SẴN (KHO HSK 1 PHONG PHÚ)
+    const dataset = {
+        chao_hoi: [
+            { hanzi: "你好", meaning: "Xin chào" },
+            { hanzi: "谢谢", meaning: "Cảm ơn" },
+            { hanzi: "再见", meaning: "Tạm biệt" },
+            { hanzi: "对不起", meaning: "Xin lỗi" },
+            { hanzi: "没关系", meaning: "Không sao đâu" },
+            { hanzi: "不客气", meaning: "Đừng khách sáo" },
+            { hanzi: "你好吗", meaning: "Bạn khỏe không?" },
+            { hanzi: "我很好", meaning: "Tôi rất khỏe" }
+        ],
+        gioi_thieu: [
+            { hanzi: "我是越南人", meaning: "Tôi là người Việt Nam" },
+            { hanzi: "你叫什么名字", meaning: "Bạn tên là gì?" },
+            { hanzi: "我叫大卫", meaning: "Tôi tên là David" },
+            { hanzi: "他是我的老师", meaning: "Thầy ấy là giáo viên của tôi" },
+            { hanzi: "我是学生", meaning: "Tôi là học sinh" },
+            { hanzi: "我认识他", meaning: "Tôi quen biết anh ấy" },
+            { hanzi: "很高兴认识你", meaning: "Rất vui được quen biết bạn" }
+        ],
+        so_thoi_gian: [
+            { hanzi: "现在几点", meaning: "Bây giờ là mấy giờ?" },
+            { hanzi: "五点零五分", meaning: "5 giờ 5 phút" },
+            { hanzi: "今天星期几", meaning: "Hôm nay là thứ mấy?" },
+            { hanzi: "今天星期天", meaning: "Hôm nay là Chủ Nhật" },
+            { hanzi: "你 mấy 岁了", meaning: "Bạn mấy tuổi rồi?" },
+            { hanzi: "我二十岁", meaning: "Tôi 20 tuổi" },
+            { hanzi: "二零二六年", meaning: "Năm 2026" }
+        ],
+        mua_sam_an_uong: [
+            { hanzi: "这个多少钱", meaning: "Cái này bao nhiêu tiền?" },
+            { hanzi: "太贵了", meaning: "Đắt quá rồi" },
+            { hanzi: "我想吃米饭", meaning: "Tôi muốn ăn cơm" },
+            { hanzi: "你想喝什么", meaning: "Bạn muốn uống gì?" },
+            { hanzi: "我要喝茶", meaning: "Tôi muốn uống trà" },
+            { hanzi: "我在商店买苹果", meaning: "Tôi mua táo ở cửa hàng" },
+            { hanzi: "这里有水吗", meaning: "Ở đây có nước không?" }
+        ],
+        giao_tiep_hang_ngay: [
+            { hanzi: "你在做什么", meaning: "Bạn đang làm gì thế?" },
+            { hanzi: "没问题", meaning: "Không vấn đề gì / Ok" },
+            { hanzi: "我听不懂", meaning: "Tôi nghe không hiểu" },
+            { hanzi: "你会 nói 汉语吗", meaning: "Bạn biết nói tiếng Trung không?" },
+            { hanzi: "我会写汉字", meaning: "Tôi biết viết chữ Hán" },
+            { hanzi: "请坐", meaning: "Xin mời ngồi" },
+            { hanzi: "这里有人吗", meaning: "Ở đây có người không?" }
+        ]
+    };
+
+    let activeSentence = "";
+
+    const categoryMenu = document.getElementById('categoryMenu');
+    const exerciseList = document.getElementById('exerciseList');
     const displayHz = document.getElementById('displayHz');
     const displayPy = document.getElementById('displayPy');
+    const displayMeaning = document.getElementById('displayMeaning');
 
-    function updateTargetData() {
-        const text = inputTarget.value.trim();
-        displayHz.innerText = text;
-        // Sử dụng thư viện pinyinPro để tự động lấy pinyin có dấu chuẩn xác
-        displayPy.innerText = pinyinPro.pinyin(text);
+    // Hàm hiển thị danh sách bài tập dựa trên chủ đề được lựa chọn
+    function renderExercises(categoryKey) {
+        exerciseList.innerHTML = "";
+        const items = dataset[categoryKey];
+        
+        items.forEach((item, index) => {
+            const pyText = pinyinPro.pinyin(item.hanzi);
+            const div = document.createElement('div');
+            div.className = `exercise-item ${index === 0 ? 'active' : ''}`;
+            div.innerHTML = `<div>${item.hanzi}</div><div class="py-sub">${pyText} | ${item.meaning}</div>`;
+            
+            div.onclick = () => {
+                document.querySelectorAll('.exercise-item').forEach(el => el.classList.remove('active'));
+                div.classList.add('active');
+                selectSentence(item);
+            };
+            exerciseList.appendChild(div);
+
+            // Mặc định chọn câu đầu tiên khi đổi danh mục
+            if(index === 0) {
+                selectSentence(item);
+            }
+        });
     }
-    inputTarget.addEventListener('input', updateTargetData);
-    // Khởi chạy lần đầu
-    updateTargetData();
 
-    // Cấu hình Nhận diện giọng nói Web Speech API
+    // Hàm chọn câu để đưa vào khu vực luyện tập chính
+    function selectSentence(item) {
+        activeSentence = item.hanzi;
+        displayHz.innerText = item.hanzi;
+        displayPy.innerText = pinyinPro.pinyin(item.hanzi);
+        displayMeaning.innerText = item.meaning;
+        document.getElementById('resultCard').style.display = "none";
+        document.getElementById('status').innerText = "Sẵn sàng. Hãy nhấn nút và đọc!";
+        document.getElementById('status').style.color = "#64748b";
+    }
+
+    // Lắng nghe sự kiện đổi chủ đề từ người dùng
+    categoryMenu.addEventListener('change', (e) => {
+        renderExercises(e.target.value);
+    });
+
+    // Khởi tạo nạp dữ liệu chủ đề đầu tiên khi mở trang web
+    renderExercises('chao_hoi');
+
+    // CẤU HÌNH WEB SPEECH API CHẤM ĐIỂM PHÁT ÂM
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        alert("Trình duyệt của bạn không hỗ trợ Nhận diện giọng nói. Vui lòng mở bằng Google Chrome hoặc Microsoft Edge!");
+        alert("Trình duyệt không hỗ trợ Voice Recognition. Vui lòng chạy trên Google Chrome hoặc MS Edge máy tính!");
     } else {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'zh-CN'; // Định dạng tiếng Trung Giản Thể
+        recognition.lang = 'zh-CN'; // Ngôn ngữ nhận diện: Tiếng Trung chuẩn đại lục
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 
-        const btnSpeak = document.getElementById('btnSpeak');
+        const btnMic = document.getElementById('btnMic');
         const status = document.getElementById('status');
         const resultCard = document.getElementById('resultCard');
 
-        btnSpeak.addEventListener('click', () => {
+        btnMic.addEventListener('click', () => {
             recognition.start();
-            status.innerText = "🎤 Đang lắng nghe... Hãy nói ngay bây giờ!";
+            status.innerText = "🎤 Đang thu âm hệ thống... Hãy đọc to rõ ràng câu trên!";
             status.style.color = "#ef4444";
-            btnSpeak.disabled = true;
+            btnMic.disabled = true;
             resultCard.style.display = "none";
         });
 
         recognition.onresult = (event) => {
             const textHeard = event.results[0][0].transcript;
             
-            // Xử lý chuẩn hóa chuỗi text gốc và text thu được
-            const targetClean = displayHz.innerText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！]/g,"").trim();
-            const heardClean = textHeard.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！]/g,"").trim();
+            // Làm sạch ký tự đặc biệt/dấu câu trước khi đối chiếu
+            const cleanTarget = activeSentence.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！]/g,"").trim();
+            const cleanHeard = textHeard.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！]/g,"").trim();
 
-            // Chuyển cả 2 sang dạng Pinyin để chấm điểm chính xác
-            const targetPinyin = pinyinPro.pinyin(targetClean);
-            const heardPinyin = pinyinPro.pinyin(heardClean);
+            // Chuyển đổi cả hai chuỗi sang dạng chuỗi âm tiết Pinyin để đối chiếu cấu trúc âm
+            const targetPyString = pinyinPro.pinyin(cleanTarget);
+            const heardPyString = pinyinPro.pinyin(cleanHeard);
 
-            // Thuật toán Tính khoảng cách tương đồng giữa 2 chuỗi Pinyin (Dice's Coefficient)
-            const score = Math.round(similarity(targetPinyin, heardPinyin) * 100);
+            // Thuật toán so sánh khoảng cách tương đồng chuỗi ký tự Levenshtein Distance
+            const finalScore = Math.round(calculateSimilarity(targetPyString, heardPyString) * 100);
 
-            // Hiển thị kết quả lên giao diện
+            // Cập nhật giao diện kết quả trả về
             document.getElementById('resHeard').innerText = textHeard;
-            document.getElementById('resHeardPy').innerText = heardPinyin;
+            document.getElementById('resHeardPy').innerText = heardPyString;
             
-            const scoreCircle = document.getElementById('scoreCircle');
+            const scoreNum = document.getElementById('resScore');
             const resFeedback = document.getElementById('resFeedback');
-            scoreCircle.innerText = score + "%";
+            scoreNum.innerText = finalScore + "%";
 
-            // Phân loại màu sắc và lời khuyên dựa trên điểm số
-            if (score >= 85) {
-                scoreCircle.style.background = "#10b981"; // Xanh lá
-                resFeedback.innerText = "Tuyệt vời! Phát âm rất chuẩn xác.";
-                resFeedback.style.color = "#10b981";
-            } else if (score >= 60) {
-                scoreCircle.style.background = "#f59e0b"; // Vàng cam
-                resFeedback.innerText = "Tạm được. Cần chú ý hơn về bật hơi hoặc thanh điệu.";
-                resFeedback.style.color = "#f59e0b";
+            // Phân loại chất lượng âm thanh dựa trên thang điểm
+            if (finalScore >= 85) {
+                scoreNum.style.color = "var(--success)";
+                resFeedback.innerText = "Tuyệt vời! Bạn phát âm cực kỳ chuẩn xác.";
+                resFeedback.style.color = "var(--success)";
+            } else if (finalScore >= 60) {
+                scoreNum.style.color = "var(--warning)";
+                resFeedback.innerText = "Khá tốt. Cần lưu ý hơn về thanh điệu (dấu) và phụ âm đầu.";
+                resFeedback.style.color = "var(--warning)";
             } else {
-                scoreCircle.style.background = "#ef4444"; // Đỏ
-                resFeedback.innerText = "Chưa chính xác. Hãy nghe kỹ lại Pinyin mẫu và thử lại nhé.";
-                resFeedback.style.color = "#ef4444";
+                scoreNum.style.color = "var(--danger)";
+                resFeedback.innerText = "Chưa đạt. Hãy chú ý nghe kỹ lại pinyin mẫu rồi thử lại.";
+                resFeedback.style.color = "var(--danger)";
             }
 
             resultCard.style.display = "block";
@@ -179,46 +317,46 @@
 
         recognition.onspeechend = () => {
             recognition.stop();
-            btnSpeak.disabled = false;
-            status.innerText = "Đã nhận giọng xong. Đang phân tích...";
+            btnMic.disabled = false;
+            status.innerText = "Đã thu âm xong. Đang xử lý tính điểm...";
             status.style.color = "#64748b";
         };
 
         recognition.onerror = (event) => {
-            btnSpeak.disabled = false;
-            status.innerText = "Không nghe rõ hoặc lỗi: " + event.error;
-            status.style.color = "#ef4444";
+            btnMic.disabled = false;
+            status.innerText = "Không nhận diện được âm thanh (Lỗi: " + event.error + "). Hãy thử lại!";
+            status.style.color = "var(--danger)";
         };
     }
 
-    // Hàm toán học tính toán độ tương đồng giữa 2 chuỗi văn bản (Chấm điểm chi tiết)
-    function similarity(s1, s2) {
-        let longer = s1; let shorter = s2;
-        if (s1.length < s2.length) { longer = s2; shorter = s1; }
-        let longerLength = longer.length;
-        if (longerLength === 0) { return 1.0; }
-        return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+    // THUẬT TOÁN ĐO ĐỘ TƯƠNG ĐỒNG CHUỖI KÝ TỰ (CHẤM ĐIỂM CHUẨN XÁC)
+    function calculateSimilarity(str1, str2) {
+        let longStr = str1; let shortStr = str2;
+        if (str1.length < str2.length) { longStr = str2; shortStr = str1; }
+        let longLen = longStr.length;
+        if (longLen === 0) { return 1.0; }
+        return (longLen - getEditDistance(longStr, shortStr)) / parseFloat(longLen);
     }
 
-    function editDistance(s1, s2) {
-        s1 = s1.toLowerCase(); s2 = s2.toLowerCase();
+    function getEditDistance(str1, str2) {
+        str1 = str1.toLowerCase(); str2 = str2.toLowerCase();
         let costs = new Array();
-        for (let i = 0; i <= s1.length; i++) {
+        for (let i = 0; i <= str1.length; i++) {
             let lastValue = i;
-            for (let j = 0; j <= s2.length; j++) {
+            for (let j = 0; j <= str2.length; j++) {
                 if (i == 0) costs[j] = j;
                 else {
                     if (j > 0) {
                         let newValue = costs[j - 1];
-                        if (s1.charAt(i - 1) != s2.charAt(j - 1))
+                        if (str1.charAt(i - 1) != str2.charAt(j - 1))
                             newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
                         costs[j - 1] = lastValue; lastValue = newValue;
                     }
                 }
             }
-            if (i > 0) costs[s2.length] = lastValue;
+            if (i > 0) costs[str2.length] = lastValue;
         }
-        return costs[s2.length];
+        return costs[str2.length];
     }
 </script>
 </body>
