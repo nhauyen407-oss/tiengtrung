@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Chấm Điểm Phát Âm Tiếng Trung Chuẩn Xác</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pinyin-pro/3.13.0/index.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a1a;
+            max-width: 650px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        h1 { text-align: center; color: #1e3a8a; margin-bottom: 5px; }
+        .desc { text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 25px; }
+        
+        .box-target {
+            text-align: center;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .target-hz { font-size: 48px; font-weight: bold; color: #0f172a; letter-spacing: 2px; }
+        .target-py { font-size: 18px; color: #2563eb; font-weight: 500; margin-top: 5px; }
+        
+        .input-group { margin-bottom: 20px; }
+        label { font-weight: 600; font-size: 14px; color: #374151; display: block; margin-bottom: 5px; }
+        input[type="text"] {
+            width: 100%; padding: 12px; border: 1px solid #cbd5e1;
+            border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+
+        .btn-speak {
+            width: 100%; padding: 15px; background: #2563eb; color: #fff;
+            border: none; border-radius: 10px; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-speak:hover { background: #1d4ed8; }
+        .btn-speak:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        #status { text-align: center; margin: 15px 0; font-weight: 500; color: #64748b; }
+        
+        .result-card {
+            border-radius: 12px; padding: 20px; margin-top: 25px;
+            display: none; animation: fadeIn 0.3s ease;
+        }
+        .result-header { display: flex; justify-content: space-between; align-items: center; }
+        .score-circle {
+            width: 80px; height: 80px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; color: white;
+        }
+        .details p { margin: 6px 0; font-size: 15px; }
+        .details span { font-weight: bold; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🇨🇳 Kiểm Tra Phát Âm Tiếng Trung</h1>
+    <div class="desc">Ứng dụng nhận diện giọng nói và chấm điểm dựa trên độ chuẩn xác của Phiên âm (Pinyin)</div>
+
+    <div class="input-group">
+        <label for="inputTarget">Nhập từ hoặc câu tiếng Trung muốn luyện tập:</label>
+        <input type="text" id="inputTarget" value="很高兴认识你" placeholder="Ví dụ: 你好, 谢谢, 苹果...">
+    </div>
+
+    <div class="box-target">
+        <div class="target-hz" id="displayHz">很高兴认识你</div>
+        <div class="target-py" id="displayPy">hěn gāo xìng rèn shi nǐ</div>
+    </div>
+
+    <button class="btn-speak" id="btnSpeak">🎤 Bấm vào đây & Đọc to câu trên</button>
+    <div id="status">Sẵn sàng nhận diện.</div>
+
+    <div class="result-card" id="resultCard">
+        <div class="result-header">
+            <div class="details">
+                <h3 style="margin-0 0 10px 0;">Kết quả phân tích:</h3>
+                <p>• Máy nghe được: <span id="resHeard" style="color: #0f172a;">-</span></p>
+                <p>• Pinyin bạn đọc: <span id="resHeardPy" style="color: #2563eb;">-</span></p>
+                <p>• Đánh giá: <span id="resFeedback">-</span></p>
+            </div>
+            <div class="score-circle" id="scoreCircle">0%</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tự động cập nhật Pinyin khi người dùng thay đổi câu mẫu
+    const inputTarget = document.getElementById('inputTarget');
+    const displayHz = document.getElementById('displayHz');
+    const displayPy = document.getElementById('displayPy');
+
+    function updateTargetData() {
+        const text = inputTarget.value.trim();
+        displayHz.innerText = text;
+        // Sử dụng thư viện pinyinPro để tự động lấy pinyin có dấu chuẩn xác
+        displayPy.innerText = pinyinPro.pinyin(text);
+    }
+    inputTarget.addEventListener('input', updateTargetData);
+    // Khởi chạy lần đầu
+    updateTargetData();
+
+    // Cấu hình Nhận diện giọng nói Web Speech API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Trình duyệt của bạn không hỗ trợ Nhận diện giọng nói. Vui lòng mở bằng Google Chrome hoặc Microsoft Edge!");
+    } else {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN'; // Định dạng tiếng Trung Giản Thể
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        const btnSpeak = document.getElementById('btnSpeak');
+        const status = document.getElementById('status');
+        const resultCard = document.getElementById('resultCard');
+
+        btnSpeak.addEventListener('click', () => {
+            recognition.start();
+            status.innerText = "🎤 Đang lắng nghe... Hãy nói ngay bây giờ!";
+            status.style.color = "#ef4444";
+            btnSpeak.disabled = true;
+            resultCard.style.display = "none";
+        });
+
+        recognition.onresult = (event) => {
+            const textHeard = event.results[0][0].transcript;
+            
+            // Xử lý chuẩn hóa chuỗi text gốc và text thu được
+            const targetClean = displayHz.innerText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！]/g,"").trim();
+            const heardClean = textHeard.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！]/g,"").trim();
+
+            // Chuyển cả 2 sang dạng Pinyin để chấm điểm chính xác
+            const targetPinyin = pinyinPro.pinyin(targetClean);
+            const heardPinyin = pinyinPro.pinyin(heardClean);
+
+            // Thuật toán Tính khoảng cách tương đồng giữa 2 chuỗi Pinyin (Dice's Coefficient)
+            const score = Math.round(similarity(targetPinyin, heardPinyin) * 100);
+
+            // Hiển thị kết quả lên giao diện
+            document.getElementById('resHeard').innerText = textHeard;
+            document.getElementById('resHeardPy').innerText = heardPinyin;
+            
+            const scoreCircle = document.getElementById('scoreCircle');
+            const resFeedback = document.getElementById('resFeedback');
+            scoreCircle.innerText = score + "%";
+
+            // Phân loại màu sắc và lời khuyên dựa trên điểm số
+            if (score >= 85) {
+                scoreCircle.style.background = "#10b981"; // Xanh lá
+                resFeedback.innerText = "Tuyệt vời! Phát âm rất chuẩn xác.";
+                resFeedback.style.color = "#10b981";
+            } else if (score >= 60) {
+                scoreCircle.style.background = "#f59e0b"; // Vàng cam
+                resFeedback.innerText = "Tạm được. Cần chú ý hơn về bật hơi hoặc thanh điệu.";
+                resFeedback.style.color = "#f59e0b";
+            } else {
+                scoreCircle.style.background = "#ef4444"; // Đỏ
+                resFeedback.innerText = "Chưa chính xác. Hãy nghe kỹ lại Pinyin mẫu và thử lại nhé.";
+                resFeedback.style.color = "#ef4444";
+            }
+
+            resultCard.style.display = "block";
+        };
+
+        recognition.onspeechend = () => {
+            recognition.stop();
+            btnSpeak.disabled = false;
+            status.innerText = "Đã nhận giọng xong. Đang phân tích...";
+            status.style.color = "#64748b";
+        };
+
+        recognition.onerror = (event) => {
+            btnSpeak.disabled = false;
+            status.innerText = "Không nghe rõ hoặc lỗi: " + event.error;
+            status.style.color = "#ef4444";
+        };
+    }
+
+    // Hàm toán học tính toán độ tương đồng giữa 2 chuỗi văn bản (Chấm điểm chi tiết)
+    function similarity(s1, s2) {
+        let longer = s1; let shorter = s2;
+        if (s1.length < s2.length) { longer = s2; shorter = s1; }
+        let longerLength = longer.length;
+        if (longerLength === 0) { return 1.0; }
+        return (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength);
+    }
+
+    function editDistance(s1, s2) {
+        s1 = s1.toLowerCase(); s2 = s2.toLowerCase();
+        let costs = new Array();
+        for (let i = 0; i <= s1.length; i++) {
+            let lastValue = i;
+            for (let j = 0; j <= s2.length; j++) {
+                if (i == 0) costs[j] = j;
+                else {
+                    if (j > 0) {
+                        let newValue = costs[j - 1];
+                        if (s1.charAt(i - 1) != s2.charAt(j - 1))
+                            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                        costs[j - 1] = lastValue; lastValue = newValue;
+                    }
+                }
+            }
+            if (i > 0) costs[s2.length] = lastValue;
+        }
+        return costs[s2.length];
+    }
+</script>
+</body>
+</html>
